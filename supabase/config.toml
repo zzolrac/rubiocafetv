@@ -1,0 +1,2 @@
+[functions.mux-video]
+verify_jwt = false
