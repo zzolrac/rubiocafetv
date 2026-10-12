@@ -74,8 +74,29 @@ async function handleCreateUpload(req: Request, body: Record<string, unknown>) {
   });
 }
 
-async function handleCheckUpload(body: Record<string, unknown>) {
-  const uploadId = typeof body.uploadId === "string" ? body.uploadId.trim() : "";
+async function handleDeleteAsset(body: Record<string, unknown>) {
+  const assetId = typeof body.assetId === "string" ? body.assetId.trim() : "";
+
+  if (!assetId || !/^[a-zA-Z0-9_-]+$/.test(assetId)) {
+    return jsonResponse({ error: "Invalid asset" }, 400);
+  }
+
+  const response = await fetch(`${muxApiBase}/assets/${assetId}`, {
+    method: "DELETE",
+    headers: { Authorization: getMuxAuthHeader() },
+  });
+
+  // Mux returns 204 on success; 404 means it was already gone — both are fine.
+  if (response.status === 204 || response.status === 404) {
+    return jsonResponse({ deleted: true });
+  }
+
+  const data = await response.json().catch(() => null);
+  console.error("Mux delete asset failed", response.status, data);
+  return jsonResponse({ error: "Unable to delete Mux asset" }, 500);
+}
+
+async function handleCheckUpload(body: Record<string, unknown>) {  const uploadId = typeof body.uploadId === "string" ? body.uploadId.trim() : "";
 
   if (!uploadId || !/^[a-zA-Z0-9_-]+$/.test(uploadId)) {
     return jsonResponse({ error: "Invalid upload" }, 400);
@@ -126,10 +147,17 @@ Deno.serve(async (req: Request) => {
     if (body.action === "check-upload") {
       return await handleCheckUpload(body);
     }
+    if (body.action === "delete-asset") {
+      return await handleDeleteAsset(body);
+    }
 
     return jsonResponse({ error: "Invalid action" }, 400);
   } catch (error) {
     console.error("Mux function error", error);
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("Mux credentials are not configured")) {
+      return jsonResponse({ error: "Mux credentials are not configured", code: "mux_not_configured" }, 500);
+    }
     return jsonResponse({ error: "Unable to process Mux request" }, 500);
   }
 });

@@ -35,6 +35,8 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({ category, onClose }) 
   const [sizes, setSizes] = useState<Size[]>([]);
   const [contentSizes, setContentSizes] = useState<Record<string, string>>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { addContent, uploadFile, uploadVideoToMux } = useContentStore();
 
   useEffect(() => {
@@ -72,6 +74,7 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({ category, onClose }) 
     if (useExternalUrl && !externalUrl.trim()) return;
 
     setIsUploading(true);
+    setUploadError(null);
 
     try {
       let url: string;
@@ -85,7 +88,9 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({ category, onClose }) 
         type = contentType;
         mediaProvider = url.includes('stream.mux.com') ? 'mux' : 'supabase';
       } else if (file!.type.startsWith('video/')) {
+        setUploadPhase('Subiendo video a Mux...');
         const muxVideo = await uploadVideoToMux(file!);
+        setUploadPhase('Procesando video en Mux...');
         url = muxVideo.playbackUrl;
         type = 'video';
         mediaProvider = 'mux';
@@ -133,9 +138,10 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({ category, onClose }) 
       onClose();
     } catch (error) {
       console.error('Error al subir el contenido:', error);
-      alert('Error al subir el contenido');
+      setUploadError(error instanceof Error ? error.message : 'Error al subir el contenido');
     } finally {
       setIsUploading(false);
+      setUploadPhase('');
     }
   };
 
@@ -367,9 +373,14 @@ const ContentUploader: React.FC<ContentUploaderProps> = ({ category, onClose }) 
               disabled={isUploading || (useExternalUrl ? !externalUrl.trim() : !file)}
               className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUploading ? 'Procesando video...' : useExternalUrl ? 'Agregar Contenido' : 'Subir Contenido'}
+              {isUploading ? (uploadPhase || 'Procesando video...') : useExternalUrl ? 'Agregar Contenido' : 'Subir Contenido'}
             </button>
           </div>
+          {uploadError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              {uploadError}
+            </p>
+          )}
         </form>
       </div>
     </div>

@@ -72,7 +72,20 @@ export const useContentStore = create<ContentState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const content = await contentQueries.getById(id);
-      
+
+      // Si el contenido vive en Mux, eliminar el asset remoto (best-effort:
+      // aunque falle, se elimina el registro local).
+      const muxAssetId = (content as Content).mux_asset_id;
+      if (muxAssetId) {
+        try {
+          await supabase.functions.invoke('mux-video', {
+            body: { action: 'delete-asset', assetId: muxAssetId },
+          });
+        } catch (muxError) {
+          console.warn('No se pudo eliminar el asset de Mux:', muxError);
+        }
+      }
+
       // Si la URL es de Supabase Storage, eliminar el archivo
       if (content.url.includes(supabase.storageUrl)) {
         const path = new URL(content.url).pathname.split('/').pop();
@@ -131,7 +144,11 @@ export const useContentStore = create<ContentState>((set) => ({
     });
 
     if (createError || !createData?.uploadId || !createData?.uploadUrl) {
-      console.error('Error al crear la carga de Mux:', createError);
+      console.error('Error al crear la carga de Mux:', createError ?? createData);
+      const raw = `${createError?.message ?? ''} ${JSON.stringify(createData ?? {})}`;
+      if (raw.includes('mux_not_configured') || raw.includes('not configured')) {
+        throw new Error('Mux no está configurado: faltan las credenciales (MUX_TOKEN_ID / MUX_TOKEN_SECRET) en Supabase.');
+      }
       throw new Error('No se pudo iniciar la carga del video');
     }
 
