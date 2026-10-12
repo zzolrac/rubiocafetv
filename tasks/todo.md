@@ -7,15 +7,16 @@
 - [x] Compilar y verificar la aplicación
 - [x] Eliminar el asset remoto de Mux al borrar un contenido (best-effort)
 - [x] Mensaje claro en la app cuando faltan credenciales de Mux
-- [ ] Conectar las credenciales de Mux y probar una carga real
+- [x] Conectar las credenciales de Mux y probar una carga real
 - [ ] Republicar la función `mux-video` (incluye `delete-asset`) en Supabase
+- [ ] Probar subida de un video real desde la app y verificar reproducción HLS
 
 ## Revisión
 
 - La aplicación compila correctamente.
-- La función `mux-video` desplegada responde pero devuelve 500: faltan
-  `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` en los secretos de Supabase.
-- Los videos nuevos se preparan para usar URLs HLS de Mux.
+- La función `mux-video` responde correctamente: las credenciales
+  `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` ya están configuradas y una prueba
+  de `create-upload` devolvió 200 con URL de carga directa.- Los videos nuevos se preparan para usar URLs HLS de Mux.
 - Las imágenes continúan usando Supabase Storage.
 - Los videos existentes no se migran automáticamente.
 - El borrado ahora intenta eliminar el asset remoto de Mux, pero requiere
