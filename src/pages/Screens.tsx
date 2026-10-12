@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Search, Settings, Clock, Plus, Trash2, Link } from 'lucide-react';
+import { Eye, Search, Settings, Clock, Plus, Trash2, Link, Pencil } from 'lucide-react';
 import { useLocationStore } from '../store/locationStore';
 import { useContentStore } from '../store/contentStore';
 import { useScheduleStore } from '../store/scheduleStore';
 import { useScreenStore } from '../store/screenStore';
 import type { Screen, Content } from '../types';
 import ScreenSettings from '../components/ScreenSettings';
+import ScreenEditor from '../components/ScreenEditor';
 import NewScreenDialog from '../components/NewScreenDialog';
 
 const Screens = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedScreen, setSelectedScreen] = useState<Screen | null>(null);
+  const [editingScreen, setEditingScreen] = useState<Screen | null>(null);
   const [isNewScreenDialogOpen, setIsNewScreenDialogOpen] = useState(false);
   const { locations, fetchLocations } = useLocationStore();
   const { contents, fetchContents } = useContentStore();
@@ -130,6 +132,13 @@ const Screens = () => {
                         <Eye size={20} />
                       </button>
                       <button
+                        onClick={() => setEditingScreen(screen)}
+                        className="p-3 text-gray-500 hover:text-primary transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
+                        title="Editar nombre y tipo"
+                      >
+                        <Pencil size={20} />
+                      </button>
+                      <button
                         onClick={() => handleManageContent(screen)}
                         className="p-3 text-gray-500 hover:text-primary transition-colors bg-gray-100 rounded-lg hover:bg-gray-200"
                         title="Gestionar contenido y horarios"
@@ -188,6 +197,16 @@ const Screens = () => {
         <ScreenSettings
           screen={selectedScreen}
           onClose={() => setSelectedScreen(null)}
+        />
+      )}
+
+      {editingScreen && (
+        <ScreenEditor
+          screen={editingScreen}
+          onClose={() => {
+            setEditingScreen(null);
+            fetchLocations();
+          }}
         />
       )}
 
